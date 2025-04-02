@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets Data Display</title>
+    <title>שעות פתיחה של עסקים</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,6 +11,7 @@
             margin: 0;
             padding: 20px;
             color: #333;
+            direction: rtl;
         }
         h1 {
             color: #2c3e50;
@@ -20,11 +21,11 @@
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            text-align: center;
         }
         th, td {
             padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            border: 1px solid #ddd;
         }
         th {
             background-color: #f2f2f2;
@@ -43,76 +44,83 @@
             text-align: center;
             padding: 20px;
         }
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Google Sheets Data</h1>
+    <h1>שעות פתיחה של עסקים</h1>
     
     <div id="dataContainer">
-        <p class="loading">Loading data from Google Sheets...</p>
+        <p class="loading">טוען נתונים...</p>
     </div>
 
     <script>
-        CONST SHEET_ID = "2PACX-1vTAWFwvwaQb7b8jet7pd9r8rQBNa6WPsuwXeWyTYf1URyM2mabzMeAS4hj1mQYi105LQ_TQOY1Ut-pK"
-        document.addEventListener('DOMContentLoaded', function() {
-            // Replace this URL with your own published Google Sheet URL
-            // Format: https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/gviz/tq?tqx=out:csv
-            
-            const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:json'`;
-            
-            fetchGoogleSheetsData(spreadsheetUrl);
-        });
-
-        function fetchGoogleSheetsData(url) {
-            fetch(url)
-                .then(response => response.text())
-                .then(data => {
-                    // The response comes as a JSON-like format with a prefix that needs to be removed
-                    const jsonData = JSON.parse(data.substring(47).slice(0, -2));
-                    displayData(jsonData);
-                })
-                .catch(error => {
-                    document.getElementById('dataContainer').innerHTML = 
-                        `<div class="error">Error loading data: ${error.message}<br>
-                        Make sure your Google Sheet is published to the web.</div>`;
-                    console.error('Error fetching data:', error);
-                });
-        }
-
-        function displayData(jsonData) {
+        // This will be called by the JSONP response
+        function handleResponse(data) {
             const container = document.getElementById('dataContainer');
             
-            // Create table element
-            const table = document.createElement('table');
-            const thead = document.createElement('thead');
-            const tbody = document.createElement('tbody');
-            
-            // Process column headers (first row)
-            const headerRow = document.createElement('tr');
-            jsonData.table.cols.forEach(col => {
-                const th = document.createElement('th');
-                th.textContent = col.label;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Process data rows
-            jsonData.table.rows.forEach(row => {
-                const tr = document.createElement('tr');
-                row.c.forEach(cell => {
-                    const td = document.createElement('td');
-                    td.textContent = cell ? (cell.v || '') : '';
-                    tr.appendChild(td);
+            try {
+                // Extract headers and rows from the response
+                const headers = data.table.cols.map(col => col.label);
+                const rows = data.table.rows;
+                
+                // Create table
+                const table = document.createElement('table');
+                
+                // Create header row
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
                 });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            
-            // Clear loading message and append table
-            container.innerHTML = '';
-            container.appendChild(table);
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Create table body with data rows
+                const tbody = document.createElement('tbody');
+                
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    row.c.forEach((cell, index) => {
+                        const td = document.createElement('td');
+                        td.textContent = cell ? (cell.v || '-') : '-';
+                        tr.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(tr);
+                });
+                
+                table.appendChild(tbody);
+                
+                // Replace loading message with the table
+                container.innerHTML = '';
+                container.appendChild(table);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="error">שגיאה בטעינת הנתונים: ${error.message}</div>`;
+                console.error('Error processing data:', error);
+            }
         }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Replace with your actual Google Sheet ID
+            const sheetId = '1Dq7KewAsLyP1eT1KI5IHL4wmFlcmCgTDQTaKUlqecLU';
+            
+            // Create a script element to load the data using JSONP (avoids CORS)
+            const script = document.createElement('script');
+            script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&callback=handleResponse`;
+            document.head.appendChild(script);
+        });
     </script>
 </body>
 </html>
