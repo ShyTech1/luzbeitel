@@ -59,7 +59,7 @@
             // Replace this URL with your own published Google Sheet URL
             // Format: https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/gviz/tq?tqx=out:csv
             // const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/{sheetid}}/gviz/tq?tqx=out:json`;
-            const spreadsheetUrl = "https://script.google.com/macros/s/AKfycbz2l22PLWKdyw7daNHr-MGYi0DL-QAaoKbbP311GAtyjgDjy2JmkQdSj_uYcBpX4lFMHg/exec"
+            const spreadsheetUrl = "https://script.google.com/macros/s/AKfycbxr-9DYG6TWu9qQGsm9mvsdbGp2GPA9_qjq4cnCY0s_HOVNcStEg6oUnQVWMCKPsqv6Ng/exec"
             
             fetchGoogleSheetsData(spreadsheetUrl);
         });
@@ -68,8 +68,10 @@
         function fetchGoogleSheetsData(url) {
 
             fetch(url)
-                .then(response => response.text())
+                // .then(response => response.text())
+                .then(response => console.log(response.text()))
                 .then(data => {
+                    console.log(data)
                     // The response comes as a JSON-like format with a prefix that needs to be removed
                     const jsonData = JSON.parse(data.substring(47).slice(0, -2));
                     displayData(jsonData);
