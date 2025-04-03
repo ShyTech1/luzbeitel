@@ -66,9 +66,7 @@
         
         function fetchGoogleSheetsData(url) {
 
-            fetch(url,{method:"get", 
-                        headers: {"Content-Type": "application/json",
-                            }})
+            fetch(url)
                 .then(response => response.text())
                 .then(data => {
                     // The response comes as a JSON-like format with a prefix that needs to be removed
