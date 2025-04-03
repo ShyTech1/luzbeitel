@@ -3,81 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Data Table</title>
+    <title>Google Sheets Data Display</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-    <h2>Live Data Table</h2>
-    <input type="text" id="search" placeholder="Search..." onkeyup="filterTable()">
-    <table id="data-table">
-        <thead>
-            <tr id="table-head"></tr>
-        </thead>
-        <tbody id="table-body"></tbody>
-    </table>
+    <h1>Google Sheets Data</h1>
+    
+    <div id="dataContainer">
+        <p class="loading">Loading data from Google Sheets...</p>
+    </div>
 
     <script>
-        const SHEET_ID = "1Dq7KewAsLyP1eT1KI5IHL4wmFlcmCgTDQTaKUlqecLU";
-        const SHEET_NAME = "Sheet1";
-        const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+        var spreadsheetUrl = ""
+        const sheetid = '1Dq7KewAsLyP1eT1KI5IHL4wmFlcmCgTDQTaKUlqecLU';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Replace this URL with your own published Google Sheet URL
+            // Format: https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/gviz/tq?tqx=out:csv
+            const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/{sheetid}}/gviz/tq?tqx=out:json`;
+            // spreadsheetUrl = "https://script.google.com/macros/s/AKfycbwaFdBmPQkzkptERmyYThPgZS35FD4Pj93T-8sNkRv38NElb_niwu5RblmOftebxzHZFA/exec"
+            fetchGoogleSheetsData(spreadsheetUrl);
+        });
 
-        async function fetchData() {
-            try {
-                const response = await fetch(API_URL);
-                const text = await response.text();
-                const json = JSON.parse(text.substring(47, text.length - 2));
-                
-                const rows = json.table.rows;
-                const headers = json.table.cols.map(col => col.label).filter(label => label);
-                
-                renderTable(headers, rows);
-            } catch (error) {
-                console.error("Error fetching data: ", error);
-            }
+        
+        function fetchGoogleSheetsData(url) {
+
+            fetch(url,{method:"get", 
+                        headers: {"Content-Type": "application/json",
+                            }})
+                .then(response => response.text())
+                .then(data => {
+                    // The response comes as a JSON-like format with a prefix that needs to be removed
+                    const jsonData = JSON.parse(data.substring(47).slice(0, -2));
+                    displayData(jsonData);
+                })
+                .catch(error => {
+                    document.getElementById('dataContainer').innerHTML = 
+                        `<div class="error">Error loading data: ${error.message}<br>
+                        Make sure your Google Sheet is published to the web.</div>`;
+                    console.error('Error fetching data:', error);
+                });
         }
 
-        function renderTable(headers, rows) {
-            const thead = document.getElementById("table-head");
-            const tbody = document.getElementById("table-body");
-            thead.innerHTML = "";
-            tbody.innerHTML = "";
-
-            // Create table headers
-            headers.forEach(header => {
-                const th = document.createElement("th");
-                th.textContent = header;
-                thead.appendChild(th);
+        function displayData(jsonData) {
+            const container = document.getElementById('dataContainer');
+            
+            // Create table element
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+            
+            // Process column headers (first row)
+            const headerRow = document.createElement('tr');
+            jsonData.table.cols.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col.label;
+                headerRow.appendChild(th);
             });
-
-            // Populate table rows
-            rows.forEach(row => {
-                const tr = document.createElement("tr");
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Process data rows
+            jsonData.table.rows.forEach(row => {
+                const tr = document.createElement('tr');
                 row.c.forEach(cell => {
-                    const td = document.createElement("td");
-                    td.textContent = cell ? cell.v : "";
+                    const td = document.createElement('td');
+                    td.textContent = cell ? (cell.v || '') : '';
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
             });
+            table.appendChild(tbody);
+            
+            // Clear loading message and append table
+            container.innerHTML = '';
+            container.appendChild(table);
         }
-
-        function filterTable() {
-            const query = document.getElementById("search").value.toLowerCase();
-            const rows = document.querySelectorAll("#table-body tr");
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? "" : "none";
-            });
-        }
-
-        fetchData();
-        setInterval(fetchData, 60000); // Refresh every minute
+        // Refresh data every 5 minutes
+setInterval(() => {
+    fetchGoogleSheetsData(spreadsheetUrl);
+}, 5 * 60 * 1000);
     </script>
 </body>
 </html>
