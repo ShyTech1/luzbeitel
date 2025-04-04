@@ -1,119 +1,182 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>זמני פתיחת עסקים בבית אל</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-          body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fbfd;
-            padding: 20px;
-          }
-      
-          h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-weight: 700;
-            color: #1a202c;
-          }
-        </style>
-      </head>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>זמני פתיחת עסקים בבית אל</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f9fbfd;
+      padding: 20px;
+    }
 
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 700;
+      color: #1a202c;
+    }
+
+    .card-header {
+      background-color: #e2e8f0;
+    }
+  </style>
+</head>
 <body>
   <h1>זמני פתיחת עסקים בבית אל</h1>
 
   <div class="container mb-4">
-    <input type="text" id="searchInput" class="form-control" placeholder="חיפוש...">
+    <input type="text" id="searchInput" class="form-control" placeholder="חיפוש עסק...">
   </div>
 
   <div id="dataContainer">
-    <p class="loading">Loading data from Google Sheets...</p>
+    <p class="loading">טוען נתונים...</p>
   </div>
 
   <script>
-    const sheetid = '1Dq7KewAsLyP1eT1KI5IHL4wmFlcmCgTDQTaKUlqecLU';
     const spreadsheetUrl = "https://script.google.com/macros/s/AKfycbxcQEBA_nD-yPrC5MLRV_BktCU_-5VeZQx6IMxbz4wgNaWB9cn1IJB_gZTzDJ_7hysijQ/exec";
     let allData = [];
 
     document.addEventListener('DOMContentLoaded', function () {
-      fetchGoogleSheetsData(spreadsheetUrl);
+      fetchGoogleSheetsData();
 
       document.getElementById('searchInput').addEventListener('input', function (e) {
         const filtered = filterData(e.target.value);
-        displayData(filtered);
+        displayCards(filtered);
       });
     });
 
-    function fetchGoogleSheetsData(url) {
-      fetch(url)
+    function fetchGoogleSheetsData() {
+      fetch(spreadsheetUrl)
         .then(response => response.json())
         .then(jsonData => {
           allData = jsonData.data;
-          displayData(allData);
+          displayCards(allData);
         })
         .catch(error => {
           document.getElementById('dataContainer').innerHTML =
-            `<div class="error">Error loading data: ${error.message}<br>
-             Make sure your Google Sheet is published to the web.</div>`;
-          console.error('Error fetching data:', error);
+            `<div class="error">שגיאה בטעינת נתונים: ${error.message}</div>`;
         });
     }
 
-    function displayData(data) {
+    function isSummerTime(date = new Date()) {
+      const year = date.getFullYear();
+
+      // יום שישי האחרון במרץ
+      const lastFridayOfMarch = new Date(year, 2, 31);
+      while (lastFridayOfMarch.getDay() !== 5) {
+        lastFridayOfMarch.setDate(lastFridayOfMarch.getDate() - 1);
+      }
+
+      // יום ראשון האחרון באוקטובר
+      const lastSundayOfOctober = new Date(year, 9, 31);
+      while (lastSundayOfOctober.getDay() !== 0) {
+        lastSundayOfOctober.setDate(lastSundayOfOctober.getDate() - 1);
+      }
+
+      return date >= lastFridayOfMarch && date < lastSundayOfOctober;
+    }
+
+    function getTodayKey() {
+      const dayIndex = new Date().getDay();
+      const summer = isSummerTime();
+
+      switch (dayIndex) {
+        case 0: return 'ראשון';
+        case 1: return 'שני';
+        case 2: return 'שלישי';
+        case 3: return 'רביעי';
+        case 4: return 'חמישי';
+        case 5: return summer ? 'שישי קיץ' : 'שישי חורף';
+        case 6: return summer ? 'מוצש קיץ' : 'מוצש חורף';
+        default: return '';
+      }
+    }
+
+    function displayCards(data) {
       const container = document.getElementById('dataContainer');
       container.innerHTML = '';
+      const today = getTodayKey();
 
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="loading">No data available.</p>';
+      if (!data.length) {
+        container.innerHTML = '<p>אין נתונים להצגה.</p>';
         return;
       }
 
-      const table = document.createElement('table');
-        table.className = "table table-hover table-bordered table-striped";
-      const thead = document.createElement('thead');
-      const tbody = document.createElement('tbody');
+      data.forEach((business, index) => {
+        const card = document.createElement('div');
+        card.className = 'card mb-3 shadow-sm';
 
-      const headers = Object.keys(data[0]);
-      const headerRow = document.createElement('tr');
-      headers.forEach(header => {
-        
-        const th = document.createElement('th');
-        th.textContent = header;
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+        const header = document.createElement('div');
+        header.className = 'card-header fw-bold';
+        header.textContent = business['שם העסק'] || 'שם לא ידוע';
 
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        headers.forEach(header => {
-          const td = document.createElement('td');
-          td.textContent = row[header] || '';
-          tr.appendChild(td);
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const todayHours = business[today] || 'לא צויין';
+        const isOpen = todayHours.includes('-');
+
+        const status = document.createElement('p');
+        status.innerHTML = `<strong>היום (${today}):</strong> ${isOpen ? '🟢 פתוח' : '🔴 סגור'} (${todayHours})`;
+
+        const phone = document.createElement('p');
+        phone.innerHTML = `<strong>טלפון:</strong> ${business['טלפון'] || 'לא צויין'}`;
+
+        const toggle = document.createElement('button');
+        toggle.className = 'btn btn-outline-primary btn-sm mt-2';
+        toggle.textContent = 'לוח זמנים שבועי';
+        toggle.setAttribute('data-bs-toggle', 'collapse');
+
+        const collapseId = 'collapse-' + index;
+        toggle.setAttribute('data-bs-target', `#${collapseId}`);
+
+        const collapse = document.createElement('div');
+        collapse.className = 'collapse mt-3';
+        collapse.id = collapseId;
+
+        const list = document.createElement('ul');
+        list.className = 'list-group list-group-flush';
+
+        Object.keys(business).forEach(key => {
+          if (key !== 'שם העסק' && key !== 'טלפון') {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between';
+            li.innerHTML = `<span><strong>${key}:</strong></span> <span>${business[key] || '—'}</span>`;
+            list.appendChild(li);
+          }
         });
-        tbody.appendChild(tr);
-      });
 
-      table.appendChild(tbody);
-      container.appendChild(table);
+        collapse.appendChild(list);
+        body.appendChild(status);
+        body.appendChild(phone);
+        body.appendChild(toggle);
+        body.appendChild(collapse);
+
+        card.appendChild(header);
+        card.appendChild(body);
+        container.appendChild(card);
+      });
     }
 
     function filterData(query) {
       query = query.toLowerCase();
-      return allData.filter(row => {
-        return Object.values(row).some(value =>
+      return allData.filter(row =>
+        Object.values(row).some(value =>
           String(value).toLowerCase().includes(query)
-        );
-      });
+        )
+      );
     }
 
     // Auto-refresh every 5 minutes
     setInterval(() => {
-      fetchGoogleSheetsData(spreadsheetUrl);
+      fetchGoogleSheetsData();
     }, 5 * 60 * 1000);
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
