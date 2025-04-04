@@ -62,39 +62,50 @@
         });
     }
 
-    function isSummerTime(date = new Date()) {
-      const year = date.getFullYear();
 
-      // יום שישי האחרון במרץ
-      const lastFridayOfMarch = new Date(year, 2, 31);
-      while (lastFridayOfMarch.getDay() !== 5) {
-        lastFridayOfMarch.setDate(lastFridayOfMarch.getDate() - 1);
-      }
 
-      // יום ראשון האחרון באוקטובר
-      const lastSundayOfOctober = new Date(year, 9, 31);
-      while (lastSundayOfOctober.getDay() !== 0) {
-        lastSundayOfOctober.setDate(lastSundayOfOctober.getDate() - 1);
-      }
+    function getIsraelDate() {
+  // קבלת תאריך לפי אזור זמן של ישראל
+  const now = new Date();
+  const options = { timeZone: 'Asia/Jerusalem', year: 'numeric', month: 'numeric', day: 'numeric' };
+  const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(now);
+  const day = parseInt(parts.find(p => p.type === 'day').value);
+  const month = parseInt(parts.find(p => p.type === 'month').value);
+  const year = parseInt(parts.find(p => p.type === 'year').value);
 
-      return date >= lastFridayOfMarch && date < lastSundayOfOctober;
-    }
+  return new Date(year, month - 1, day);
+}
 
-    function getTodayKey() {
-      const dayIndex = new Date().getDay();
-      const summer = isSummerTime();
+function isSummerTime() {
+  const date = getIsraelDate();
+  const year = date.getFullYear();
 
-      switch (dayIndex) {
-        case 0: return 'ראשון';
-        case 1: return 'שני';
-        case 2: return 'שלישי';
-        case 3: return 'רביעי';
-        case 4: return 'חמישי';
-        case 5: return summer ? 'שישי קיץ' : 'שישי חורף';
-        case 6: return summer ? 'מוצש קיץ' : 'מוצש חורף';
-        default: return '';
-      }
-    }
+  // יום שישי האחרון של מרץ
+  const lastFridayOfMarch = new Date(year, 2, 31);
+  while (lastFridayOfMarch.getDay() !== 5) {
+    lastFridayOfMarch.setDate(lastFridayOfMarch.getDate() - 1);
+  }
+
+  // יום ראשון האחרון של אוקטובר
+  const lastSundayOfOctober = new Date(year, 9, 31);
+  while (lastSundayOfOctober.getDay() !== 0) {
+    lastSundayOfOctober.setDate(lastSundayOfOctober.getDate() - 1);
+  }
+
+  return date >= lastFridayOfMarch && date < lastSundayOfOctober;
+}
+
+function getTodayKey() {
+  const options = { weekday: 'long', timeZone: 'Asia/Jerusalem' };
+  const dayName = new Intl.DateTimeFormat('he-IL', options).format(new Date());
+  const summer = isSummerTime();
+
+  if (dayName.includes('שישי')) return summer ? 'שישי קיץ' : 'שישי חורף';
+  if (dayName.includes('שבת')) return summer ? 'מוצש קיץ' : 'מוצש חורף';
+
+  return dayName; // ראשון עד חמישי
+}
+
 
     function displayCards(data) {
       const container = document.getElementById('dataContainer');
@@ -121,7 +132,8 @@
         const isOpen = todayHours.includes('-');
 
         const status = document.createElement('p');
-        status.innerHTML = `<strong>היום (${today}):</strong> ${isOpen ? '🟢 פתוח' : '🔴 סגור'} (${todayHours})`;
+        // status.innerHTML = `<strong>היום (${today}):</strong> ${isOpen ? '🟢 פתוח' : '🔴 סגור'} (${todayHours})`;
+        status.innerHTML = `<strong>היום  (${todayHours})`;
 
         const phone = document.createElement('p');
         phone.innerHTML = `<strong>טלפון:</strong> ${business['טלפון'] || 'לא צויין'}`;
